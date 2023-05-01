@@ -1,0 +1,172 @@
+[
+    {
+        "wave": 1,
+        "enemies": [{ "num": 5, "health": 1 }]
+    },
+    {
+        "wave": 2,
+        "enemies": [{ "num": 10, "health": 1 }]
+    },
+    {
+        "wave": 3,
+        "enemies": [
+            { "num": 8, "health": 1 },
+            { "num": 3, "health": 2 }
+        ]
+    },
+    {
+        "wave": 4,
+        "enemies": [{ "num": 10, "health": 2 }]
+    },
+    {
+        "wave": 5,
+        "enemies": [
+            { "num": 10, "health": 2 },
+            { "num": 3, "health": 3 }
+        ]
+    },
+    {
+        "wave": 6,
+        "enemies": [
+            { "num": 10, "health": 3 },
+            { "num": 1, "health": 4 }
+        ]
+    },
+    {
+        "wave": 7,
+        "enemies": [
+            { "num": 5, "health": 4 },
+            { "num": 1, "health": 5 }
+        ]
+    },
+    {
+        "wave": 8,
+        "enemies": [
+            { "num": 10, "health": 4 },
+            { "num": 5, "health": 5 }
+        ]
+    },
+    {
+        "wave": 9,
+        "enemies": [
+            { "num": 5, "health": 5 },
+            { "num": 1, "health": 6 }
+        ]
+    },
+    {
+        "wave": 10,
+        "enemies": [
+            { "num": 10, "health": 5 },
+            { "num": 5, "health": 6 }
+        ]
+    },
+    {
+        "wave": 11,
+        "enemies": [
+            { "num": 10, "health": 5 },
+            { "num": 6, "health": 6 },
+            { "num": 1, "health": 7 }
+        ]
+    },
+    {
+        "wave": 12,
+        "enemies": [
+            { "num": 10, "health": 5 },
+            { "num": 10, "health": 6 },
+            { "num": 5, "health": 7 }
+        ]
+    },
+    {
+        "wave": 13,
+        "enemies": [
+            { "num": 10, "health": 6 },
+            { "num": 10, "health": 7 }
+        ]
+    },
+    {
+        "wave": 14,
+        "enemies": [
+            { "num": 10, "health": 7 },
+            { "num": 5, "health": 8 }
+        ]
+    },
+    {
+        "wave": 15,
+        "enemies": [
+            { "num": 15, "health": 7 },
+            { "num": 10, "health": 8 }
+        ]
+    },
+    {
+        "wave": 16,
+        "enemies": [
+            { "num": 15, "health": 7 },
+            { "num": 10, "health": 8 },
+            { "num": 3, "health": 9 }
+        ]
+    },
+    {
+        "wave": 17,
+        "enemies": [
+            { "num": 15, "health": 8 },
+            { "num": 10, "health": 9 }
+        ]
+    },
+    {
+        "wave": 18,
+        "enemies": [
+            { "num": 10, "health": 9 },
+            { "num": 5, "health": 10 }
+        ]
+    },
+    {
+        "wave": 19,
+        "enemies": [
+            { "num": 15, "health": 9 },
+            { "num": 10, "health": 10 }
+        ]
+    },
+    {
+        "wave": 20,
+        "enemies": [
+            { "num": 15, "health": 10 },
+            { "num": 5, "health": 11 }
+        ]
+    },
+    {
+        "wave": 21,
+        "enemies": [
+            { "num": 20, "health": 10 },
+            { "num": 10, "health": 11 }
+        ]
+    },
+    {
+        "wave": 22,
+        "enemies": [
+            { "num": 10, "health": 11 },
+            { "num": 5, "health": 12 }
+        ]
+    },
+    {
+        "wave": 23,
+        "enemies": [
+            { "num": 15, "health": 11 },
+            { "num": 10, "health": 12 }
+        ]
+    },
+    {
+        "wave": 24,
+        "enemies": [
+            { "num": 15, "health": 12 },
+            { "num": 8, "health": 13 }
+        ]
+    },
+    {
+        "wave": 25,
+        "enemies": [
+            { "num": 25, "health": 12 },
+            { "num": 15, "health": 13 }
+        ]
+
+    }
+]
