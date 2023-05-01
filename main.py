@@ -18,26 +18,32 @@ clock = pygame.time.Clock()
 
 # Define colors
 WHITE = (255, 255, 255)
+path_color = (128, 101, 66)  # Brown
+tower_placement_circle_color = (0, 0, 0, 70)  # Semi-transparent black
+
+player_health = 100
 
 # Load images
-background_image = pygame.image.load("assets/background.png")
-projectile_image = pygame.image.load("assets/projectiles/projectile.png")
+background_image = resize_image(pygame.image.load("assets/background.png"), SCREEN_WIDTH, SCREEN_HEIGHT)
+projectile_image = resize_image(pygame.image.load("assets/projectiles/projectile.png"), 15, 15)
+
+projectile_speed = 3
+projectile_damage = 1
 
 wave_data = wave_data()
 
+# Sprites
 towers = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 projectiles = pygame.sprite.Group()
 
+# Enemy
 spawn_rate = 500  # in milliseconds
 last_spawn_time = 0
 
-background_image = resize_image(background_image, SCREEN_WIDTH, SCREEN_HEIGHT)
-projectile_image = resize_image(projectile_image, 15, 15)
-
 towers_data = Tower.get_towers_data()
 
-tower_images = []
+tower_images = [] # Tower.get_tower_images()
 for tower_data in towers_data:
     image = pygame.image.load(tower_data["filename"])
     size = tower_data["size"]
@@ -45,32 +51,17 @@ for tower_data in towers_data:
     tower_data["image"] = resized_image
     tower_images.append(resized_image)
 
-enemy_images_data = [
-    {"filename": "assets/enemies/enemy-dark_brown.png", "health": 13},
-    {"filename": "assets/enemies/enemy-dark_purple.png", "health": 12},
-    {"filename": "assets/enemies/enemy-dark_green.png", "health": 11},
-    {"filename": "assets/enemies/enemy-dark_blue.png", "health": 10},
-    {"filename": "assets/enemies/enemy-dark_red.png", "health": 9},
-    {"filename": "assets/enemies/enemy-black.png", "health": 8},
-    {"filename": "assets/enemies/enemy-grey.png", "health": 7},
-    {"filename": "assets/enemies/enemy-brown.png", "health": 6},
-    {"filename": "assets/enemies/enemy-pink.png", "health": 5},
-    {"filename": "assets/enemies/enemy-green.png", "health": 4},
-    {"filename": "assets/enemies/enemy-yellow.png", "health": 3},
-    {"filename": "assets/enemies/enemy-blue.png", "health": 2},
-    {"filename": "assets/enemies/enemy-red.png", "health": 1}
-]
+enemies_data = Enemy.get_enemies_data()
 
-enemy_images = []
-for enemy_data in enemy_images_data:
+enemy_images = [] # Enemy.get_enemies_images()
+for enemy_data in enemies_data:
     image = pygame.image.load(enemy_data["filename"])
     resized_image = resize_image(image, 40, 40)
     enemy_images.append(resized_image)
 
 # Create a dictionary for easier access based on the enemy's health
-enemy_images_dict = {data["health"]: image for data, image in zip(enemy_images_data, enemy_images)}
+enemy_images_dict = {data["health"]: image for data, image in zip(Enemy.get_enemies_data(), enemy_images)}
 
-path_color = (128, 101, 66)  # Brown
 path_width = 55
 path = [(-25, 310), (110, 310), (110, 120), (270, 120), (270, 360), (480, 360), (480, 240), (800, 240)]
 enemy_width, enemy_height = enemy_images[0].get_size()
@@ -79,7 +70,7 @@ offset = (enemy_width // 2, enemy_height // 2)
 toolbar_width = 100
 toolbar = Toolbar(SCREEN_WIDTH - toolbar_width, 0, toolbar_width, SCREEN_HEIGHT, (232, 230, 230), tower_images)
 
-selected_tower_type = None
+selected_option = None
 
 wave = 0
 current_wave = 0
@@ -90,10 +81,11 @@ game_started = False
 
 font = pygame.font.Font(None, 24)
 
+# towers_data = Tower.get_towers_data()
+
 def resize_image(image, width, height):
     return pygame.transform.scale(image, (width, height))
 
-# Draw Path
 def draw_path(screen, path, color, width, offset):
     adjusted_path = [(x + offset[0], y + offset[1]) for x, y in path]
     pygame.draw.lines(screen, color, False, adjusted_path, width)
@@ -115,11 +107,11 @@ def draw_cursor_coordinates(screen, font, color):
     coordinates_text = font.render(f"({x}, {y})", True, color)
     screen.blit(coordinates_text, (x + 10, y + 10))
 
-def add_tower(position, tower_data): # tower_image, damage, rotatable):
+def add_tower(position, tower_data):
     x, y = position
     tower_image = tower_data["image"]
-    centered_x = x - tower_data["placement_center"][0] #tower_image.get_width() // 2
-    centered_y = y - tower_data["placement_center"][1] #tower_image.get_height() // 2
+    centered_x = x - tower_data["placement_center"][0] 
+    centered_y = y - tower_data["placement_center"][1]
     cooldown = 500
     range_radius = 150
     damage = tower_data["damage"]
@@ -128,6 +120,41 @@ def add_tower(position, tower_data): # tower_image, damage, rotatable):
 
     new_tower = Tower(centered_x, centered_y, tower_image, cooldown, range_radius, projectiles, damage, rotatable, tower_data, angle_threshold)
     towers.add(new_tower)
+
+def draw_placement_circle(screen, position, radius, color):
+    surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+    pygame.draw.circle(surface, color, (radius, radius), radius)
+    rect = surface.get_rect()
+    rect.center = position
+    screen.blit(surface, rect)
+
+def is_valid_position(new_tower_rect, towers, path_rects):
+    # Check if the tower is not on the path
+    for path_rect in path_rects:
+        if new_tower_rect.colliderect(path_rect):
+            return "Path collision"
+
+    # Check if the tower is not overlapping with other towers
+    for tower in towers:
+        if new_tower_rect.colliderect(tower.rect):
+            return "Tower collision"
+
+    return True
+
+def create_path_rect(path, path_width, offset):
+    rect_points = [] 
+    for i in range(len(path) - 1):
+        start = path[i]
+        end = path[i + 1]
+        
+        if start[0] == end[0]:  # vertical segment
+            rect_points.append(pygame.Rect((start[0] - path_width // 2)+10, min(start[1], end[1]), path_width, abs(end[1] - start[1])))
+
+        else:  # horizontal segment
+            rect_points.append(pygame.Rect(min(start[0], end[0]), (start[1] - path_width // 2)+10, abs(end[0] - start[0]), path_width))
+    
+    print(rect_points)
+    return rect_points
 
 def spawn_enemy():
     global last_spawn_time, enemies_remaining, wave, wave_data
@@ -163,19 +190,26 @@ def start_wave():
 
 def draw_wave_counter(screen, font, wave, color):
     wave_counter_text = font.render(f"Wave: {wave}", True, color)
-    
+    screen.blit(wave_counter_text, (5, 25))
+
+def draw_player_health(screen, font, player_health, color):
+    health_text = font.render(f"Health: {player_health}", True, color)
+
     # Create a slightly dark and opaque background
-    text_rect = wave_counter_text.get_rect()
-    background = pygame.Surface((text_rect.width + 10, text_rect.height + 10))
+    text_rect = health_text.get_rect()
+    background = pygame.Surface((text_rect.width + 10, text_rect.height + 30))
     background.fill((0, 0, 0))
-    background.set_alpha(128)
-    
+    background.set_alpha(180)
+
     # Draw the background and wave counter text
     background_rect = background.get_rect(topleft=(0, 0))
     screen.blit(background, background_rect)
-    screen.blit(wave_counter_text, (background_rect.x + 5, background_rect.y + 5))
+    screen.blit(health_text, (background_rect.x + 5, background_rect.y + 5))
+
+path_rects = create_path_rect(path, 70, offset)
 
 while True:
+    is_valid_pos = ''
     # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -184,33 +218,42 @@ while True:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left mouse button
                 if toolbar.rect.collidepoint(event.pos):
-                    selected_tower_type = toolbar.select_tower(event.pos)
-                    if selected_tower_type == 'start':
+                    selected_option = toolbar.select_option(event.pos)
+                    if selected_option == 'start':
                         if not enemies and not enemies_remaining:  # If the current wave is complete
                             start_wave()
-                    elif selected_tower_type == 'reset':
+                    elif selected_option == 'reset':
                         reset_game()
-                elif selected_tower_type is not None and isinstance(selected_tower_type, int):
-                    tower_image = tower_images[selected_tower_type]
-                    tower_damage = towers_data[selected_tower_type]["damage"]
-                    tower_rotatable = towers_data[selected_tower_type]["rotatable"]
-                    tower_data = towers_data[selected_tower_type]
-                    add_tower(event.pos, tower_data)
+                elif selected_option is not None and isinstance(selected_option, int):
+                    tower_data = towers_data[selected_option]
+                    new_tower_rect = pygame.Rect(event.pos[0] - tower_data["tower_base"][0], event.pos[1] - tower_data["tower_base"][1], tower_data["tower_base"][0], tower_data["tower_base"][1])
+                    
+                    is_valid_pos = is_valid_position(new_tower_rect, towers, path_rects)
+                    if is_valid_pos == True:
+                        print('adding tower')
+                        add_tower(event.pos, tower_data)
+                    else:
+                        print(is_valid_pos)
+
 
     # Spawn enemies
     if game_started and enemies_remaining > 0:
         spawn_enemy()
 
     # Update game objects
-    projectile_speed = 3
-    projectile_damage = 1
-    towers.update(enemies, projectile_image, projectile_speed, projectile_damage)
-    
+    towers.update(enemies, projectile_image, projectile_speed, projectile_damage)    
     enemies.update()
     projectiles.update()
 
     # Move game objects
     enemies.update()
+
+    # Update Health
+    for enemy in enemies.sprites():
+        enemy.update()
+        if enemy.rect.right >= SCREEN_WIDTH-80:  # Enemy left the screen
+            player_health -= enemy.health
+            enemy.kill()  # Remove the enemy from the game
 
     # Rotate towers towards the closest enemy within range
     for tower in towers:
@@ -222,6 +265,9 @@ while True:
     # Draw background
     screen.blit(background_image, (0, 0))
 
+    # Draw player health
+    draw_player_health(screen, font, player_health, WHITE)
+
     # Draw wave counter
     draw_wave_counter(screen, font, wave, WHITE)
 
@@ -229,10 +275,21 @@ while True:
     draw_path(screen, path, path_color, path_width, offset)
 
     # Draw game objects
-    towers.draw(screen)
     enemies.draw(screen)
+    towers.draw(screen)
     projectiles.draw(screen)
     toolbar.draw(screen)
+
+    # Draw tower placement circle
+    if isinstance(selected_option, int) and not toolbar.rect.collidepoint(pygame.mouse.get_pos()):
+        tower_data = towers_data[selected_option]
+        tower_range = tower_data["range_radius"]
+        new_tower_rect = pygame.Rect(pygame.mouse.get_pos()[0] - tower_data["tower_base"][0], pygame.mouse.get_pos()[1] - tower_data["tower_base"][1], tower_data["tower_base"][0], tower_data["tower_base"][1])
+        if is_valid_position(new_tower_rect, towers, path_rects) == True:
+            draw_placement_circle(screen, pygame.mouse.get_pos(), tower_range, tower_placement_circle_color)
+        else:
+            invalid_placement_color = (255, 0, 0, 70)  # Semi-transparent red
+            draw_placement_circle(screen, pygame.mouse.get_pos(), tower_range, invalid_placement_color)
 
     # TESTING Draw grid (for development purposes)
     # draw_grid(screen, grid_color = (200, 200, 200), cell_size = 40)

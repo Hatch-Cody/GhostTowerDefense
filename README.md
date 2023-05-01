@@ -13,10 +13,11 @@ Currently Features
 Feature Roadmap
 ---------------
 
+-   Health system - Ghosts that get through your defenses will remove a set amount of health from your overall health pool.
+-   Tower range - Show the tower's range when it is placed
 -   Monetary system - Players will earn money for each ghost they kill, which they can use to buy towers.
 -   More types of towers - We plan to add more tower options, such as catapults, snipers, and lasers.
 -   75 additional waves - Our goal is to bring the total number of waves to 100, increasing the game's challenge and longevity.
--   Health system - Ghosts that get through your defenses will remove a set amount of health from your overall health pool.
 -   Tower Upgrade system - Players will be able to click on towers and purchase upgrades to improve their effectiveness against ghosts.
 
-We welcome feedback and contributions from the developer community. Thanks for checking out Ghost Tower Defense!
+I welcome feedback and contributions from the developer community. Thanks for checking out Ghost Tower Defense!

@@ -3,8 +3,6 @@ import math
 
 from enemy import Enemy
 from projectile import Projectile
-# from utils import Utils
-
 
 class Tower(pygame.sprite.Sprite):
     def __init__(
@@ -51,7 +49,7 @@ class Tower(pygame.sprite.Sprite):
             )
             ** 2
         ) ** 0.5
-        return distance <= self.range_radius
+        return distance <= self.tower_data['range_radius']
 
     def can_shoot(self):
         now = pygame.time.get_ticks()
@@ -114,7 +112,7 @@ class Tower(pygame.sprite.Sprite):
                     target = enemy
                     min_distance = distance
 
-        if target:
+        if target and self.in_range(target):  # Check if the target is in range
             self.rotate(target)
             dx = target.rect.x - self.rect.x
             dy = target.rect.y - self.rect.y
@@ -137,18 +135,22 @@ class Tower(pygame.sprite.Sprite):
                 "filename": "assets/towers/cannon.png",
                 "size": 40,
                 "placement_center": (20, 20),
+                "tower_base": (20, 20),
                 "damage": 2,
                 "rotatable": True,
                 "angle_threshold": 5,
+                "range_radius": 100
             },
             {
                 "name:": "Archer Tower",
                 "filename": "assets/towers/archer-tower.png",
                 "size": 80,
                 "placement_center": (40, 60),
+                "tower_base": (20, 20),
                 "damage": 1,
                 "rotatable": False,
                 "angle_threshold": 365,
+                "range_radius": 70
             },
         ]
 
@@ -159,6 +161,8 @@ class Tower(pygame.sprite.Sprite):
         for tower_data in towers_data:
             image = pygame.image.load(tower_data["filename"])
             size = tower_data["size"]
-            resized_image = pygame.transform.scale(image, (size, size)) #Utils.resize_image(image, size, size)
+            resized_image = pygame.transform.scale(image, (size, size))
             tower_data["image"] = resized_image
             tower_images.append(resized_image)
+
+        return tower_images

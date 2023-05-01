@@ -1,0 +1,39 @@
+{
+    "towers_data": [
+        {
+            "name:": "Cannon",
+            "filename": "assets/towers/cannon.png",
+            "size": 40,
+            "placement_center": "(20, 20)",
+            "damage": 2,
+            "rotatable": "True",
+            "angle_threshold": 5,
+            "range_radius": 100
+        },
+        {
+            "name:": "Archer Tower",
+            "filename": "assets/towers/archer-tower.png",
+            "size": 80,
+            "placement_center": "(40, 60)",
+            "damage": 1,
+            "rotatable": "False",
+            "angle_threshold": 365,
+            "range_radius": 70
+        }
+    ],
+    "enemies_data": [
+        { "filename": "assets/enemies/enemy-dark_brown.png", "health": 13 },
+        { "filename": "assets/enemies/enemy-dark_purple.png", "health": 12 },
+        { "filename": "assets/enemies/enemy-dark_green.png", "health": 11 },
+        { "filename": "assets/enemies/enemy-dark_blue.png", "health": 10 },
+        { "filename": "assets/enemies/enemy-dark_red.png", "health": 9 },
+        { "filename": "assets/enemies/enemy-black.png", "health": 8 },
+        { "filename": "assets/enemies/enemy-grey.png", "health": 7 },
+        { "filename": "assets/enemies/enemy-brown.png", "health": 6 },
+        { "filename": "assets/enemies/enemy-pink.png", "health": 5 },
+        { "filename": "assets/enemies/enemy-green.png", "health": 4 },
+        { "filename": "assets/enemies/enemy-yellow.png", "health": 3 },
+        { "filename": "assets/enemies/enemy-blue.png", "health": 2 },
+        { "filename": "assets/enemies/enemy-red.png", "health": 1 }
+    ]
+}
