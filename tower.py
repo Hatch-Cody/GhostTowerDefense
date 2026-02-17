@@ -35,6 +35,8 @@ class Tower(pygame.sprite.Sprite):
         self.rotatable = rotatable
         self.angle_threshold = angle_threshold
         self.tower_data = tower_data
+        self.slow_duration = tower_data.get("slow_duration", 0)
+        self.slow_factor = tower_data.get("slow_factor", 1.0)
 
     def in_range(self, enemy):
         distance = (
@@ -73,6 +75,8 @@ class Tower(pygame.sprite.Sprite):
             projectile_image,
             projectile_speed,
             projectile_damage,
+            slow_duration=self.slow_duration,
+            slow_factor=self.slow_factor,
         )
         self.projectiles.add(projectile)
         self.last_shot = pygame.time.get_ticks()
@@ -128,26 +132,64 @@ class Tower(pygame.sprite.Sprite):
     def get_towers_data():
         return [
             {
-                "name:": "Cannon",
+                "name": "Cannon",
                 "filename": "assets/towers/cannon.png",
                 "size": 40,
                 "placement_center": (20, 20),
                 "tower_base": (20, 20),
                 "damage": 2,
+                "cooldown": 500,
                 "rotatable": True,
                 "angle_threshold": 5,
-                "range_radius": 100
+                "range_radius": 100,
+                "cost": 50,
+                "slow_duration": 0,
+                "slow_factor": 1.0,
             },
             {
-                "name:": "Archer Tower",
+                "name": "Archer Tower",
                 "filename": "assets/towers/archer-tower.png",
                 "size": 80,
                 "placement_center": (40, 60),
                 "tower_base": (20, 20),
                 "damage": 1,
+                "cooldown": 500,
                 "rotatable": False,
                 "angle_threshold": 365,
-                "range_radius": 70
+                "range_radius": 70,
+                "cost": 75,
+                "slow_duration": 0,
+                "slow_factor": 1.0,
+            },
+            {
+                "name": "Sniper",
+                "filename": "assets/towers/tank.png",
+                "size": 40,
+                "placement_center": (20, 20),
+                "tower_base": (20, 20),
+                "damage": 5,
+                "cooldown": 1500,
+                "rotatable": True,
+                "angle_threshold": 3,
+                "range_radius": 200,
+                "cost": 150,
+                "slow_duration": 0,
+                "slow_factor": 1.0,
+            },
+            {
+                "name": "Freeze Tower",
+                "filename": "assets/towers/tower-2.png",
+                "size": 50,
+                "placement_center": (25, 25),
+                "tower_base": (25, 25),
+                "damage": 1,
+                "cooldown": 800,
+                "rotatable": False,
+                "angle_threshold": 365,
+                "range_radius": 120,
+                "cost": 100,
+                "slow_duration": 2000,
+                "slow_factor": 0.4,
             },
         ]
 

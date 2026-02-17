@@ -1,16 +1,18 @@
 import pygame
 
 class Toolbar:
-    def __init__(self, x, y, width, height, color, tower_images):
+    def __init__(self, x, y, width, height, color, tower_images, towers_data):
         self.rect = pygame.Rect(x, y, width, height)
         self.color = color
         self.tower_images = tower_images
+        self.towers_data = towers_data
         self.selected_option = None
         self.start_button = pygame.Rect(x+5, height-110, width-10, 30)
         self.deselect_button = pygame.Rect(x+5, height-70, width-10, 30)
         self.reset_button = pygame.Rect(x+5, height-30, width-10, 30)
+        self.cost_font = pygame.font.Font(None, 20)
 
-    def draw(self, screen):
+    def draw(self, screen, gold=0):
         pygame.draw.rect(screen, self.color, self.rect)
 
         # Define a function to draw and center text on a button
@@ -31,10 +33,18 @@ class Toolbar:
             image = pygame.transform.scale(image, (40, 40))
             tower_rect = image.get_rect()
             tower_rect.x = self.rect.x + (self.rect.width - tower_rect.width) // 2
-            tower_rect.y = self.rect.y + self.deselect_button.height + index * (tower_rect.height + 10) + 10
+            tower_rect.y = self.rect.y + self.deselect_button.height + index * (tower_rect.height + 24) + 10
             screen.blit(image, tower_rect)
             if index == self.selected_option:
                 pygame.draw.rect(screen, (255, 0, 0), tower_rect, 2)
+
+            # Draw cost label below tower icon
+            cost = self.towers_data[index]["cost"]
+            can_afford = gold >= cost
+            cost_color = (255, 215, 0) if can_afford else (200, 60, 60)
+            cost_text = self.cost_font.render(f"{cost}g", True, cost_color)
+            cost_rect = cost_text.get_rect(centerx=tower_rect.centerx, top=tower_rect.bottom + 1)
+            screen.blit(cost_text, cost_rect)
 
     def select_option(self, pos):
         x, y = pos
@@ -52,7 +62,7 @@ class Toolbar:
 
         y_offset = self.deselect_button.height + 10
         tower_height = self.tower_images[0].get_height()
-        spacing = 10
+        spacing = 24
         index = (y - self.rect.y - y_offset) // (tower_height + spacing)
 
         if 0 <= index < len(self.tower_images):

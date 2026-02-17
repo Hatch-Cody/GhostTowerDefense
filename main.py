@@ -23,6 +23,8 @@ path_color = (128, 101, 66)  # Brown
 tower_placement_circle_color = (0, 0, 0, 70)  # Semi-transparent black
 
 player_health = 100
+gold = 200
+floating_texts = []
 
 # Load images
 background_image = resize_image(pygame.image.load("assets/background.png"), SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -69,7 +71,7 @@ enemy_width, enemy_height = enemy_images[0].get_size()
 offset = (enemy_width // 2, enemy_height // 2)
 
 toolbar_width = 100
-toolbar = Toolbar(SCREEN_WIDTH - toolbar_width, 0, toolbar_width, SCREEN_HEIGHT, (232, 230, 230), tower_images)
+toolbar = Toolbar(SCREEN_WIDTH - toolbar_width, 0, toolbar_width, SCREEN_HEIGHT, (232, 230, 230), tower_images, towers_data)
 
 selected_option = None
 
@@ -109,10 +111,10 @@ def draw_cursor_coordinates(screen, font, color):
 def add_tower(position, tower_data):
     x, y = position
     tower_image = tower_data["image"]
-    centered_x = x - tower_data["placement_center"][0] 
+    centered_x = x - tower_data["placement_center"][0]
     centered_y = y - tower_data["placement_center"][1]
-    cooldown = 500
-    range_radius = 150
+    cooldown = tower_data["cooldown"]
+    range_radius = tower_data["range_radius"]
     damage = tower_data["damage"]
     rotatable = tower_data["rotatable"]
     angle_threshold = tower_data["angle_threshold"]
@@ -154,6 +156,14 @@ def create_path_rect(path, path_width, offset):
     
     return rect_points
 
+def award_kill(enemy):
+    global gold
+    gold += enemy.reward
+    spawn_floating_text(f"+{enemy.reward}g", enemy.rect.centerx, enemy.rect.centery)
+
+def spawn_floating_text(text, x, y, color=(255, 215, 0)):
+    floating_texts.append({"text": text, "x": x, "y": float(y), "timer": 45, "color": color})
+
 def spawn_enemy():
     global last_spawn_time, enemies_remaining, wave, wave_data
     now = pygame.time.get_ticks()
@@ -162,7 +172,7 @@ def spawn_enemy():
         wave_enemies = wave_data[wave - 1]["enemies"]
         for enemy_data in wave_enemies:
             if enemy_data["num"] > 0:
-                enemy = Enemy(enemy_images_dict, enemy_data["health"], 1, path)
+                enemy = Enemy(enemy_images_dict, enemy_data["health"], 1, path, on_kill_callback=award_kill)
                 enemies.add(enemy)
                 last_spawn_time = now
                 enemies_remaining -= 1
@@ -172,6 +182,7 @@ def spawn_enemy():
 def reset_game():
     global enemies, towers, projectiles, last_spawn_time, game_started
     global wave_data, wave, enemies_remaining, player_health, game_state
+    global gold, floating_texts
     enemies = pygame.sprite.Group()
     towers = pygame.sprite.Group()
     projectiles = pygame.sprite.Group()
@@ -181,6 +192,8 @@ def reset_game():
     wave = 0
     enemies_remaining = 0
     player_health = 100
+    gold = 200
+    floating_texts = []
     wave_data = copy.deepcopy(_original_wave_data)
 
 def draw_overlay(screen, title, subtitle, button_text):
@@ -215,23 +228,33 @@ def start_wave():
         enemies_remaining = sum(enemy["num"] for enemy in wave_data[wave - 1]["enemies"])
         game_started = True
 
-def draw_wave_counter(screen, font, wave, color):
-    wave_counter_text = font.render(f"Wave: {wave}", True, color)
-    screen.blit(wave_counter_text, (5, 25))
+def draw_hud(screen, font, player_health, wave, gold):
+    health_text = font.render(f"Health: {player_health}", True, WHITE)
+    wave_text = font.render(f"Wave: {wave}/{len(wave_data)}", True, WHITE)
+    gold_text = font.render(f"Gold: {gold}", True, (255, 215, 0))
 
-def draw_player_health(screen, font, player_health, color):
-    health_text = font.render(f"Health: {player_health}", True, color)
-
-    # Create a slightly dark and opaque background
-    text_rect = health_text.get_rect()
-    background = pygame.Surface((text_rect.width + 10, text_rect.height + 30))
+    # Dark background behind HUD
+    bg_width = max(health_text.get_width(), wave_text.get_width(), gold_text.get_width()) + 15
+    background = pygame.Surface((bg_width, 65))
     background.fill((0, 0, 0))
     background.set_alpha(180)
+    screen.blit(background, (0, 0))
 
-    # Draw the background and wave counter text
-    background_rect = background.get_rect(topleft=(0, 0))
-    screen.blit(background, background_rect)
-    screen.blit(health_text, (background_rect.x + 5, background_rect.y + 5))
+    screen.blit(health_text, (5, 5))
+    screen.blit(wave_text, (5, 25))
+    screen.blit(gold_text, (5, 45))
+
+def draw_floating_texts(screen, font):
+    for ft in floating_texts[:]:
+        ft["timer"] -= 1
+        ft["y"] -= 1
+        if ft["timer"] <= 0:
+            floating_texts.remove(ft)
+            continue
+        alpha = int(255 * (ft["timer"] / 45))
+        text_surface = font.render(ft["text"], True, ft["color"])
+        text_surface.set_alpha(alpha)
+        screen.blit(text_surface, (ft["x"], int(ft["y"])))
 
 path_rects = create_path_rect(path, 70, offset)
 overlay_button = None
@@ -244,6 +267,14 @@ while True:
             pygame.quit()
             sys.exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 3 and game_state == "playing":  # Right-click to sell
+                for tower in towers:
+                    if tower.rect.collidepoint(event.pos):
+                        refund = int(tower.tower_data["cost"] * 0.6)
+                        gold += refund
+                        spawn_floating_text(f"+{refund}g", tower.rect.centerx, tower.rect.centery)
+                        tower.kill()
+                        break
             if event.button == 1:  # Left mouse button
                 # Handle overlay button clicks (game over / victory)
                 if game_state in ("game_over", "victory") and overlay_button and overlay_button.collidepoint(event.pos):
@@ -259,9 +290,10 @@ while True:
                 elif selected_option is not None and isinstance(selected_option, int):
                     tower_data = towers_data[selected_option]
                     new_tower_rect = pygame.Rect(event.pos[0] - tower_data["tower_base"][0], event.pos[1] - tower_data["tower_base"][1], tower_data["tower_base"][0], tower_data["tower_base"][1])
-                    
+
                     is_valid_pos = is_valid_position(new_tower_rect, towers, path_rects)
-                    if is_valid_pos == True:
+                    if is_valid_pos == True and gold >= tower_data["cost"]:
+                        gold -= tower_data["cost"]
                         add_tower(event.pos, tower_data)
 
 
@@ -304,11 +336,8 @@ while True:
     # Draw background
     screen.blit(background_image, (0, 0))
 
-    # Draw player health
-    draw_player_health(screen, font, player_health, WHITE)
-
-    # Draw wave counter
-    draw_wave_counter(screen, font, wave, WHITE)
+    # Draw HUD
+    draw_hud(screen, font, player_health, wave, gold)
 
     # Draw path
     draw_path(screen, path, path_color, path_width, offset)
@@ -317,7 +346,7 @@ while True:
     enemies.draw(screen)
     towers.draw(screen)
     projectiles.draw(screen)
-    toolbar.draw(screen)
+    toolbar.draw(screen, gold)
 
     # Draw tower placement circle
     if isinstance(selected_option, int) and not toolbar.rect.collidepoint(pygame.mouse.get_pos()):
@@ -329,6 +358,9 @@ while True:
         else:
             invalid_placement_color = (255, 0, 0, 70)  # Semi-transparent red
             draw_placement_circle(screen, pygame.mouse.get_pos(), tower_range, invalid_placement_color)
+
+    # Draw floating texts
+    draw_floating_texts(screen, font)
 
     # Draw game-over or victory overlay
     overlay_button = None
