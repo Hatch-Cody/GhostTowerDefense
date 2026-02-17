@@ -32,11 +32,6 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x += direction[0] * self.speed
             self.rect.y += direction[1] * self.speed
 
-    def take_damage(self, damage):
-        self.health -= damage
-        if self.health <= 0:
-            self.kill()
-
     def update(self):
         if self.path_index < len(self.path):
             self.move()

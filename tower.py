@@ -55,9 +55,6 @@ class Tower(pygame.sprite.Sprite):
         now = pygame.time.get_ticks()
         return now - self.last_shot >= self.cooldown
 
-    def angle_diff(a1, a2):
-        return (a1 - a2 + 180) % 360 - 180
-
     def shoot(self, enemy, projectile_image, projectile_speed, projectile_damage):
         # Calculate the position of the projectile based on the tower's angle and size
         tower_center_x = self.rect.centerx
@@ -98,7 +95,7 @@ class Tower(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(self.original_image, self.angle)
             self.rect = self.image.get_rect(center=self.rect.center)
 
-    def update(self, enemies, projectile_image, projectile_speed, projectile_damage):
+    def update(self, enemies, projectile_image, projectile_speed):
         target = None
         min_distance = float("inf")
 
@@ -125,7 +122,7 @@ class Tower(pygame.sprite.Sprite):
             # Use the angle_threshold attribute
             if abs(angle_diff) <= self.angle_threshold and self.can_shoot():
                 self.shoot(
-                    target, projectile_image, projectile_speed, projectile_damage
+                    target, projectile_image, projectile_speed, self.damage
                 )
 
     def get_towers_data():

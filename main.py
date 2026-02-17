@@ -1,3 +1,4 @@
+import copy
 import pygame
 import sys
 import math
@@ -28,9 +29,9 @@ background_image = resize_image(pygame.image.load("assets/background.png"), SCRE
 projectile_image = resize_image(pygame.image.load("assets/projectiles/projectile.png"), 15, 15)
 
 projectile_speed = 3
-projectile_damage = 1
 
-wave_data = wave_data()
+_original_wave_data = wave_data()
+wave_data = copy.deepcopy(_original_wave_data)
 
 # Sprites
 towers = pygame.sprite.Group()
@@ -78,13 +79,11 @@ current_wave = 0
 enemies_remaining = 0
 
 game_started = False
+game_state = "playing"  # "playing", "game_over", "victory"
 
 font = pygame.font.Font(None, 24)
-
-# towers_data = Tower.get_towers_data()
-
-def resize_image(image, width, height):
-    return pygame.transform.scale(image, (width, height))
+large_font = pygame.font.Font(None, 72)
+medium_font = pygame.font.Font(None, 36)
 
 def draw_path(screen, path, color, width, offset):
     adjusted_path = [(x + offset[0], y + offset[1]) for x, y in path]
@@ -153,7 +152,6 @@ def create_path_rect(path, path_width, offset):
         else:  # horizontal segment
             rect_points.append(pygame.Rect(min(start[0], end[0]), (start[1] - path_width // 2)+10, abs(end[0] - start[0]), path_width))
     
-    print(rect_points)
     return rect_points
 
 def spawn_enemy():
@@ -173,20 +171,49 @@ def spawn_enemy():
 
 def reset_game():
     global enemies, towers, projectiles, last_spawn_time, game_started
+    global wave_data, wave, enemies_remaining, player_health, game_state
     enemies = pygame.sprite.Group()
     towers = pygame.sprite.Group()
     projectiles = pygame.sprite.Group()
     last_spawn_time = 0
     game_started = False
+    game_state = "playing"
+    wave = 0
+    enemies_remaining = 0
+    player_health = 100
+    wave_data = copy.deepcopy(_original_wave_data)
+
+def draw_overlay(screen, title, subtitle, button_text):
+    """Draw a semi-transparent overlay with title text, subtitle, and a button.
+    Returns the button rect for click detection."""
+    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 160))
+    screen.blit(overlay, (0, 0))
+
+    title_surface = large_font.render(title, True, WHITE)
+    title_rect = title_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+    screen.blit(title_surface, title_rect)
+
+    sub_surface = medium_font.render(subtitle, True, (200, 200, 200))
+    sub_rect = sub_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 10))
+    screen.blit(sub_surface, sub_rect)
+
+    button_rect = pygame.Rect(0, 0, 160, 40)
+    button_rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 70)
+    pygame.draw.rect(screen, (0, 191, 54), button_rect)
+    pygame.draw.rect(screen, WHITE, button_rect, 2)
+    btn_text = medium_font.render(button_text, True, WHITE)
+    btn_text_rect = btn_text.get_rect(center=button_rect.center)
+    screen.blit(btn_text, btn_text_rect)
+
+    return button_rect
 
 def start_wave():
     global wave, enemies_remaining, game_started, wave_data
-    wave += 1
-    if wave <= len(wave_data):
+    if wave < len(wave_data):
+        wave += 1
         enemies_remaining = sum(enemy["num"] for enemy in wave_data[wave - 1]["enemies"])
         game_started = True
-    else:
-        print("All waves completed!")
 
 def draw_wave_counter(screen, font, wave, color):
     wave_counter_text = font.render(f"Wave: {wave}", True, color)
@@ -207,6 +234,7 @@ def draw_player_health(screen, font, player_health, color):
     screen.blit(health_text, (background_rect.x + 5, background_rect.y + 5))
 
 path_rects = create_path_rect(path, 70, offset)
+overlay_button = None
 
 while True:
     is_valid_pos = ''
@@ -217,6 +245,10 @@ while True:
             sys.exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left mouse button
+                # Handle overlay button clicks (game over / victory)
+                if game_state in ("game_over", "victory") and overlay_button and overlay_button.collidepoint(event.pos):
+                    reset_game()
+                    continue
                 if toolbar.rect.collidepoint(event.pos):
                     selected_option = toolbar.select_option(event.pos)
                     if selected_option == 'start':
@@ -230,30 +262,37 @@ while True:
                     
                     is_valid_pos = is_valid_position(new_tower_rect, towers, path_rects)
                     if is_valid_pos == True:
-                        print('adding tower')
                         add_tower(event.pos, tower_data)
-                    else:
-                        print(is_valid_pos)
 
 
-    # Spawn enemies
-    if game_started and enemies_remaining > 0:
-        spawn_enemy()
+    # Only update gameplay when playing
+    if game_state == "playing":
+        # Spawn enemies
+        if game_started and enemies_remaining > 0:
+            spawn_enemy()
 
-    # Update game objects
-    towers.update(enemies, projectile_image, projectile_speed, projectile_damage)    
-    enemies.update()
-    projectiles.update()
+        # Update game objects
+        towers.update(enemies, projectile_image, projectile_speed)
+        enemies.update()
+        projectiles.update()
 
-    # Move game objects
-    enemies.update()
+        # Check for enemies that reached the end
+        for enemy in enemies.sprites():
+            if enemy.rect.right >= SCREEN_WIDTH - 80:
+                player_health -= enemy.health
+                enemy.kill()
 
-    # Update Health
-    for enemy in enemies.sprites():
-        enemy.update()
-        if enemy.rect.right >= SCREEN_WIDTH-80:  # Enemy left the screen
-            player_health -= enemy.health
-            enemy.kill()  # Remove the enemy from the game
+        # Check for game over
+        if player_health <= 0:
+            player_health = 0
+            game_state = "game_over"
+
+        # Check for victory
+        if (game_started
+                and wave >= len(wave_data)
+                and enemies_remaining == 0
+                and len(enemies) == 0):
+            game_state = "victory"
 
     # Rotate towers towards the closest enemy within range
     for tower in towers:
@@ -291,10 +330,12 @@ while True:
             invalid_placement_color = (255, 0, 0, 70)  # Semi-transparent red
             draw_placement_circle(screen, pygame.mouse.get_pos(), tower_range, invalid_placement_color)
 
-    # TESTING Draw grid (for development purposes)
-    # draw_grid(screen, grid_color = (200, 200, 200), cell_size = 40)
-    # TESTING Draw cursor coordinates (for development purposes)
-    # draw_cursor_coordinates(screen, pygame.font.Font(None, 24), (0, 0, 0))
+    # Draw game-over or victory overlay
+    overlay_button = None
+    if game_state == "game_over":
+        overlay_button = draw_overlay(screen, "GAME OVER", f"Reached wave {wave}", "Restart")
+    elif game_state == "victory":
+        overlay_button = draw_overlay(screen, "VICTORY!", f"All {len(wave_data)} waves cleared!", "Play Again")
 
     # Update display
     pygame.display.flip()
